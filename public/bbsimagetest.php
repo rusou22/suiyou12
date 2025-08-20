@@ -70,9 +70,9 @@ document.getElementById('imageInput').addEventListener('change', function (event
   <dl style="margin-bottom: 1em; padding-bottom: 1em; border-bottom: 1px solid #ccc;">
     <dt>ID</dt>
     <dd><?= $entry['id'] ?></dd>
-    <dt>日時</dt>
+    <dt>日時!</dt>
     <dd><?= $entry['created_at'] ?></dd>
-    <dt>内容</dt>
+    <dt>内容!</dt>
     <dd>
       <?= nl2br(htmlspecialchars($entry['body'])) // 必ず htmlspecialchars() すること ?>
       <?php if(!empty($entry['image_filename'])): // 画像がある場合は img 要素を使って表示 ?>
