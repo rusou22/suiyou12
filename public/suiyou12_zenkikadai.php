@@ -1,4 +1,3 @@
-
 <?php
 $dbh = new PDO('mysql:host=mysql;dbname=example_db', 'root', '');
 
@@ -44,6 +43,9 @@ $select_sth->execute();
 ?>
 
 
+
+
+<!-- フォームのPOST先はこのファイル自身にする -->
 <form method="POST" action="./suiyou12_zenkikadai.php" enctype="multipart/form-data">
   <textarea name="body" required></textarea>
   <div style="margin: 1em 0;">
