@@ -127,7 +127,7 @@ $select_sth->execute();
     <div style="margin: 1em 0;">
       <input type="file" accept="image/*" name="image" id="imageInput">
     </div>
-    <button type="submit">送信ボタン</button>
+    <button type="submit">送信</button>
   </form>
 
   <hr style="border:none; height:12px;">
