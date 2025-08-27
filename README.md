@@ -59,7 +59,7 @@
 作成したDockerコンテナ(コンテナ名はmysql)内のMySQLサーバーにmysqlコマンドで接続する場合
 
     ```bash
-    docker compose exec mysql mysql example_db
+    docker compose exec mysql mysql データベース名
     ```
 
 
