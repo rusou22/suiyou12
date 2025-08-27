@@ -56,6 +56,13 @@
 
 ## テーブル作成
 
+作成したDockerコンテナ(コンテナ名はmysql)内のMySQLサーバーにmysqlコマンドで接続する場合
+
+    ```bash
+    docker compose exec mysql mysql example_db
+    ```
+
+
 以下の SQLで作成。
 
 ```sql
