@@ -54,7 +54,7 @@
     docker compose build
     ```
 
-## BBS テーブル作成手順
+## テーブル作成
 
 以下の SQLで作成。
 
