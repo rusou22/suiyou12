@@ -38,15 +38,14 @@
         └── bbsimagetest.php
     ```
 
-3. **`docker compose build` とは**
+3. **`docker compose build` について**
 
     `設定ファイル変更後に使用。
-
     ```bash
     docker compose build
     ```
 
-    **`docker compose up` とは**
+    **`docker compose up` について**
 
     `起動時に使用。
 
