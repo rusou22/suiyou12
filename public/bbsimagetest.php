@@ -66,7 +66,7 @@ $select_sth->execute();
     }
     img { max-width: 100%; height: auto; }
 
-    /* ── ここから一覧の見やすさ強化 ── */
+    /* ── 見やすさ強化 ── */
     .entries { margin-top: 16px; }
     .entry {
       background: #fff;
@@ -96,7 +96,7 @@ $select_sth->execute();
     .badge-id{ font-weight: 700; }
     .entry-body{
       font-size: 15.5px;
-      white-space: pre-wrap; /* nl2brと合わせて安全に折り返し */
+      white-space: pre-wrap; 
       word-break: break-word;
       margin: 6px 0;
     }
@@ -104,18 +104,18 @@ $select_sth->execute();
       margin-top: 8px;
       border-radius: 8px;
       display: block;
-      max-height: 280px; /* 高さを取りすぎないように */
+      max-height: 280px; 
       object-fit: contain;
       border: 1px solid #f1f5f9;
       background: #f8fafc;
     }
-    /* 小さめ画面での余白最適化 */
+    /* スマートフォン用 */
     @media (max-width: 420px){
       .entry { padding: 12px; }
       .entry-body { font-size: 15px; }
     }
 
-    /* 既存のDLスタイルは使わないので薄く */
+   
     dl { display: none; }
   </style>
 </head>
@@ -142,7 +142,7 @@ $select_sth->execute();
   });
   </script>
 
-  <!-- 投稿一覧（カード風に再構成して表示） -->
+  <!-- 投稿一覧（カード風で表示） -->
   <div class="entries">
     <?php foreach($select_sth as $entry): ?>
       <article class="entry">
