@@ -46,7 +46,7 @@ https://qiita.com/hiro_10/items/3ee98a7842c3c74e0d29
 ### 3.1 接続コマンド
 
 ```powershell
-ssh ec2-user@$<PUBLIC_IP> -i <KEY_PATH>
+ssh ec2-user@<PUBLIC_IP> -i <KEY_PATH>
 #パスに空白がある場合はダブルクォートで囲みます：
 ssh ec2-user@<PUBLIC_IP> -i "C:\Users\you\Desktop\my key.pem"
 ```
