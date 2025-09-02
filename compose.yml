@@ -6,7 +6,7 @@ services:
     volumes:
       - ./nginx/conf.d/:/etc/nginx/conf.d/
       - ./public/:/var/www/public/
-      - image:/var/www/upload/image/i
+      - image:/var/www/upload/image/
     depends_on:
       - php
   php:
