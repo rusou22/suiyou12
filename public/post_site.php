@@ -6,7 +6,7 @@ if (isset($_POST['body'])) {
   if (isset($_FILES['image']) && !empty($_FILES['image']['tmp_name'])) {
     if (preg_match('/^image\//', mime_content_type($_FILES['image']['tmp_name'])) !== 1) {
       header("HTTP/1.1 302 Found");
-      header("Location: ./bbsimagetest.php");
+      header("Location: ./post_site.php"); // ← 変更
       return;
     }
     $pathinfo = pathinfo($_FILES['image']['name']);
@@ -23,7 +23,7 @@ if (isset($_POST['body'])) {
   ]);
 
   header("HTTP/1.1 302 Found");
-  header("Location: ./bbsimagetest.php");
+  header("Location: ./post_site.php"); // ← 変更
   return;
 }
 
@@ -56,7 +56,7 @@ function bodyFilter (string $body): string
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>BBS Image Test</title>
+  <title>Post Site</title>
   <style>
     html, body {
       margin: 0; padding: 0;
@@ -151,7 +151,7 @@ function bodyFilter (string $body): string
 <body>
 <div class="wrap">
   <!-- フォーム -->
-  <form method="POST" action="./bbsimagetest.php" enctype="multipart/form-data">
+  <form method="POST" action="./post_site.php" enctype="multipart/form-data"><!-- ← 変更 -->
     <textarea name="body" required></textarea>
     <div style="margin: 1em 0;">
       <input type="file" accept="image/*" name="image" id="imageInput">
