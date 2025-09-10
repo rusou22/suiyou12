@@ -10,7 +10,7 @@ if (isset($_POST['body'])) {
       return;
     }
     $pathinfo = pathinfo($_FILES['image']['name']);
-    $extension = $pathinfo['extension'];
+    $extension = $pathinfo['extension'] ?? 'png';
     $image_filename = strval(time()) . bin2hex(random_bytes(25)) . '.' . $extension;
     $filepath =  '/var/www/upload/image/' . $image_filename;
     move_uploaded_file($_FILES['image']['tmp_name'], $filepath);
@@ -29,8 +29,28 @@ if (isset($_POST['body'])) {
 
 $select_sth = $dbh->prepare('SELECT * FROM bbs_entries ORDER BY created_at DESC');
 $select_sth->execute();
-?>
 
+/**
+ * 本文を安全に整形して、" >>番号 " を該当投稿へのアンカーに変換する
+ */
+function bodyFilter (string $body): string
+{
+  // エスケープ（必須）
+  $safe = htmlspecialchars($body, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
+  // 改行 → <br>
+  $safe = nl2br($safe);
+
+  // レスアンカー >>123 → <a href="#entry123">…</a>
+  // htmlspecialchars後なので '>>' は '&gt;&gt;' になっている点に注意
+  $safe = preg_replace(
+    '/&gt;&gt;(\d+)/',
+    '<a href="#entry$1" class="reply-anchor">&gt;&gt;$1</a>',
+    $safe
+  );
+
+  return $safe;
+}
+?>
 <!doctype html>
 <html lang="ja">
 <head>
@@ -75,6 +95,11 @@ $select_sth->execute();
       padding: 14px;
       margin-bottom: 12px;
       box-shadow: 0 2px 8px rgba(0,0,0,.03);
+      scroll-margin-top: 10px; /* 固定ヘッダがある場合のズレ対策 */
+    }
+    .entry:target{
+      outline: 2px solid #7aa3ff;
+      background: rgba(122,163,255,0.08);
     }
     .entry-header{
       display: flex;
@@ -96,7 +121,7 @@ $select_sth->execute();
     .badge-id{ font-weight: 700; }
     .entry-body{
       font-size: 15.5px;
-      white-space: pre-wrap; 
+      white-space: normal; /* bodyFilter内でnl2br済みなのでpre-wrap不要 */
       word-break: break-word;
       margin: 6px 0;
     }
@@ -104,18 +129,22 @@ $select_sth->execute();
       margin-top: 8px;
       border-radius: 8px;
       display: block;
-      max-height: 280px; 
+      max-height: 280px;
       object-fit: contain;
       border: 1px solid #f1f5f9;
       background: #f8fafc;
     }
+    .reply-anchor{
+      text-decoration: underline;
+      cursor: pointer;
+    }
+
     /* スマートフォン用 */
     @media (max-width: 420px){
       .entry { padding: 12px; }
       .entry-body { font-size: 15px; }
     }
 
-   
     dl { display: none; }
   </style>
 </head>
@@ -145,20 +174,23 @@ $select_sth->execute();
   <!-- 投稿一覧（カード風で表示） -->
   <div class="entries">
     <?php foreach($select_sth as $entry): ?>
-      <article class="entry">
+      <?php
+        $id = htmlspecialchars($entry['id'], ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
+        $created = htmlspecialchars($entry['created_at'], ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
+        $image = isset($entry['image_filename']) && $entry['image_filename'] !== ''
+          ? htmlspecialchars($entry['image_filename'], ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8')
+          : null;
+      ?>
+      <article class="entry" id="entry<?= $id ?>">
         <div class="entry-header">
-          <span class="badge badge-id">#<?= htmlspecialchars($entry['id'], ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8') ?></span>
-          <time class="badge">
-            <?= htmlspecialchars($entry['created_at'], ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8') ?>
-          </time>
+          <span class="badge badge-id">#<?= $id ?></span>
+          <time class="badge"><?= $created ?></time>
         </div>
         <div class="entry-body">
-          <?= nl2br(htmlspecialchars($entry['body'], ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8')) ?>
+          <?= bodyFilter($entry['body']) ?>
         </div>
-        <?php if(!empty($entry['image_filename'])): ?>
-          <img
-            src="/image/<?= htmlspecialchars($entry['image_filename'], ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8') ?>"
-            class="entry-image" alt="">
+        <?php if($image): ?>
+          <img src="/image/<?= $image ?>" class="entry-image" alt="">
         <?php endif; ?>
       </article>
     <?php endforeach ?>
@@ -166,8 +198,3 @@ $select_sth->execute();
 </div>
 </body>
 </html>
-
-
-
-
-
