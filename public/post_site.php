@@ -3,27 +3,50 @@ $dbh = new PDO('mysql:host=mysql;dbname=example_db', 'root', '');
 
 if (isset($_POST['body'])) {
   $image_filename = null;
-  if (isset($_FILES['image']) && !empty($_FILES['image']['tmp_name'])) {
+
+  // 1) base64(縮小済み) が送られてきた場合：これを最優先で保存
+  if (!empty($_POST['image_base64'])) {
+    // 先頭の data:...;base64, を削除してデコード
+    $base64 = preg_replace('/^data:.+base64,/', '', $_POST['image_base64']);
+    $image_binary = base64_decode($base64);
+
+    // 新しいファイル名（JPEG固定：toDataURL('image/jpeg', ...)に合わせる）
+    $image_filename = strval(time()) . bin2hex(random_bytes(25)) . '.jpg';
+    $filepath =  '/var/www/upload/image/' . $image_filename;
+
+    // 画像を書き込み
+    file_put_contents($filepath, $image_binary);
+
+  // 2) base64が無ければ、従来どおりのファイルアップロードを処理
+  } elseif (isset($_FILES['image']) && !empty($_FILES['image']['tmp_name'])) {
+    // 画像MIMEチェック
     if (preg_match('/^image\//', mime_content_type($_FILES['image']['tmp_name'])) !== 1) {
       header("HTTP/1.1 302 Found");
-      header("Location: ./post_site.php"); // ← 変更
+      header("Location: ./post_site.php");
       return;
     }
+    // 拡張子を取得（なければ png 扱い）
     $pathinfo = pathinfo($_FILES['image']['name']);
     $extension = $pathinfo['extension'] ?? 'png';
+
+    // ランダムな新ファイル名
     $image_filename = strval(time()) . bin2hex(random_bytes(25)) . '.' . $extension;
     $filepath =  '/var/www/upload/image/' . $image_filename;
+
+    // 保存
     move_uploaded_file($_FILES['image']['tmp_name'], $filepath);
   }
 
+  // DBへINSERT
   $insert_sth = $dbh->prepare("INSERT INTO bbs_entries (body, image_filename) VALUES (:body, :image_filename)");
   $insert_sth->execute([
     ':body' => $_POST['body'],
     ':image_filename' => $image_filename,
   ]);
 
+  // PRG
   header("HTTP/1.1 302 Found");
-  header("Location: ./post_site.php"); // ← 変更
+  header("Location: ./post_site.php");
   return;
 }
 
@@ -151,23 +174,91 @@ function bodyFilter (string $body): string
 <body>
 <div class="wrap">
   <!-- フォーム -->
-  <form method="POST" action="./post_site.php" enctype="multipart/form-data"><!-- ← 変更 -->
+  <form method="POST" action="./post_site.php" enctype="multipart/form-data">
     <textarea name="body" required></textarea>
     <div style="margin: 1em 0;">
       <input type="file" accept="image/*" name="image" id="imageInput">
+      <!-- 選択状態の案内（視覚的に「選択されていません」対策） -->
+      <div id="selectedInfo" aria-live="polite" style="margin-top:6px;color:#475569;font-size:13px;"></div>
     </div>
+    <!-- 縮小後のbase64を送るためのhidden -->
+    <input id="imageBase64Input" type="hidden" name="image_base64">
+    <!-- 縮小描画用canvas（非表示）-->
+    <canvas id="imageCanvas" style="display:none;"></canvas>
     <button type="submit">送信</button>
   </form>
 
   <hr style="border:none; height:12px;">
 
   <script>
-  document.getElementById('imageInput').addEventListener('change', function (event) {
-    const file = event.target.files[0];
-    if (file && file.size > 5 * 1024 * 1024) {
-      alert('5MB以上の画像はアップロードできません。');
-      event.target.value = '';
-    }
+  // 「5MB超は縮小→可能なら input.files を置換。ダメなら base64 で送信」
+  document.addEventListener("DOMContentLoaded", () => {
+    const imageInput = document.getElementById("imageInput");
+    const imageBase64Input = document.getElementById("imageBase64Input");
+    const info = document.getElementById("selectedInfo");
+    const canvas = document.getElementById("imageCanvas");
+    const ctx = canvas.getContext("2d");
+    const LIMIT = 5 * 1024 * 1024; // 5MB
+
+    imageInput.addEventListener("change", () => {
+      info.textContent = ""; // 表示クリア
+      if (imageInput.files.length < 1) return;
+
+      const file = imageInput.files[0];
+      if (!file.type.startsWith('image/')) return;
+
+      const reader = new FileReader();
+      const img = new Image();
+
+      reader.onload = () => {
+        img.onload = async () => {
+          // 縮小サイズの計算（長辺2000px）
+          const maxLength = 2000;
+          const w = img.naturalWidth, h = img.naturalHeight;
+          if (w <= maxLength && h <= maxLength) {
+            canvas.width = w; canvas.height = h;
+          } else if (w > h) {
+            canvas.width = maxLength; canvas.height = Math.round(maxLength * h / w);
+          } else {
+            canvas.width = Math.round(maxLength * w / h); canvas.height = maxLength;
+          }
+
+          ctx.clearRect(0, 0, canvas.width, canvas.height);
+          ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+
+          // Blob化（JPEG 品質 0.9）
+          const blob = await new Promise(res => canvas.toBlob(res, 'image/jpeg', 0.9));
+          if (!blob) return;
+
+          // base64 も hidden に格納（サーバは base64 を優先保存）
+          const b64Reader = new FileReader();
+          b64Reader.onloadend = () => { imageBase64Input.value = b64Reader.result; };
+          b64Reader.readAsDataURL(blob);
+
+          // 5MB超の元ファイルは処理：縮小後が5MB以下なら input.files を差し替え、見た目の「未選択」を回避
+          if (file.size > LIMIT) {
+            if (blob.size <= LIMIT) {
+              const dt = new DataTransfer();
+              const newName = (file.name.replace(/\.\w+$/, '') || 'image') + '.jpg';
+              const tinyFile = new File([blob], newName, { type: 'image/jpeg' });
+              dt.items.add(tinyFile);
+              imageInput.files = dt.files; // ← 「選択済み」を維持
+              info.textContent = `${newName}（縮小して送信します）`;
+            } else {
+              // それでも大きい場合は input は空にして base64 のみ送信（UXのため案内を表示）
+              imageInput.value = "";
+              info.textContent = `${file.name}（縮小して送信します）`;
+            }
+          } else {
+            // もともと5MB以下：通常ファイル送信（案内表示）
+            info.textContent = `${file.name}（そのまま送信します）`;
+          }
+        };
+        img.src = reader.result;
+      };
+
+      reader.readAsDataURL(file);
+    });
   });
   </script>
 
