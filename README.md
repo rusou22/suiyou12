@@ -144,7 +144,7 @@ dockertest/
 │   └── conf.d/
 │       └── default.conf
 └── public/
-    └── bbsimagetest.php
+    └── post_site.php
 ```
 
 ---
@@ -200,7 +200,7 @@ CREATE TABLE IF NOT EXISTS `bbs_entries` (
 ## 11. 動作確認（ブラウザ）
 
 ```
-http://<PUBLIC_IP>/bbsimagetest.php
+http://<PUBLIC_IP>/post.php
 ```
 
 ページが表示され、投稿/画像機能が動作すれば成功です。
